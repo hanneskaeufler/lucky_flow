@@ -6,7 +6,6 @@ class LuckyFlow::Chromedriver
   getter log_io = IO::Memory.new
 
   private def initialize
-    ensure_chromedriver_is_installed
     @process = start_chromedriver
   end
 
@@ -14,26 +13,25 @@ class LuckyFlow::Chromedriver
     new
   end
 
-  private def ensure_chromedriver_is_installed
-    if !Process.find_executable("chromedriver")
-      raise <<-ERROR
-      Chromedriver must be available from the command line to use LuckyFlow.
-
-        ▸ On macOS: brew install chromedriver
-        ▸ On Linux: https://makandracards.com/makandra/29465-install-chromedriver-on-linux
-
-      ERROR
-    end
-  end
-
   private def start_chromedriver : Process
     Process.new(
-      "chromedriver",
+      "#{__DIR__}/../../vendor/chromedriver-2.40-#{os}",
       ["--port=4444", "--url-base=/wd/hub"],
       output: log_io,
       error: STDERR,
       shell: true
     )
+  end
+
+  private def os
+    os_name = IO::Memory.new
+    Process.run("uname -a", shell: true, output: os_name, error: STDERR)
+
+    if os_name.to_s.includes?("Darwin")
+      "mac64"
+    else
+      "linux64"
+    end
   end
 
   def stop
